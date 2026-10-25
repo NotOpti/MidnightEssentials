@@ -51,22 +51,16 @@ jobs:
             username: "MidnightEssentials",
             avatar_url: $logo,
             embeds: [{
-              author: { name: "MidnightEssentials", icon_url: $logo },
               title: ("MidnightEssentials " + $v),
               url: $site,
-              description: "Your entire interface. One addon.\nNow with **WoW Forever** support.",
+              description: "The all-in-one UI suite for World of Warcraft.\n\n**Recommended** · Use the Updater app. It installs the addon and keeps it up to date for you.\n**Manual** · Download the zip and replace the MidnightEssentials folders in `_retail_ > Interface > AddOns`.",
               color: 10980346,
-              fields: [
-                { name: "🔄 One-click install & updates",
-                  value: "The Updater app installs MidnightEssentials for you and keeps it up to date automatically. Get it with the button below, or see <#1551228077671972885>" },
-                { name: "📥 Manual install / update",
-                  value: "1. Click **Download** below and get the latest version\n2. Delete all MidnightEssentials folders in:\n`World of Warcraft > _retail_ > Interface > AddOns`\n3. Extract the new version there" }
-              ],
-              footer: { text: ("MidnightEssentials © 2026 • Latest update: " + (now | strftime("%d %b %Y"))), icon_url: $logo }
+              thumbnail: { url: $logo },
+              footer: { text: ("Updated " + (now | strftime("%d %b %Y"))) }
             }],
             components: [{ type: 1, components: [
-              { type: 2, style: 5, label: "Download", emoji: { name: "⬇️" }, url: $site },
-              { type: 2, style: 5, label: "Updater App", emoji: { name: "🔄" }, url: ($site + "#updater") }
+              { type: 2, style: 5, label: "Download", url: $site },
+              { type: 2, style: 5, label: "Updater App", url: ($site + "#updater") }
             ]}]
           }' > payload.json
 
