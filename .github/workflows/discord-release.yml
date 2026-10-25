@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      post_changelog:
+        description: "Also post the latest release changelog (with ping)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -19,13 +24,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Post changelog to Discord
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || inputs.post_changelog
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           NAME: ${{ github.event.release.name }}
           TAG: ${{ github.event.release.tag_name }}
           BODY: ${{ github.event.release.body }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if [ "${{ github.event_name }}" != "release" ]; then
+            REL=$(gh api "repos/${{ github.repository }}/releases/latest")
+            NAME=$(echo "$REL" | jq -r '.name // ""')
+            TAG=$(echo "$REL" | jq -r '.tag_name')
+            BODY=$(echo "$REL" | jq -r '.body // ""')
+          fi
+
           TITLE="$NAME"
           [ -z "$TITLE" ] && TITLE="$TAG"
           case "$TITLE" in v*) ;; *) TITLE="v$TITLE" ;; esac
