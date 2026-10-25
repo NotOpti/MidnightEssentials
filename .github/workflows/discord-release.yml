@@ -12,12 +12,13 @@ env:
   LOGO: https://www.midnightessentials.me/favicon.png
   SITE: https://www.midnightessentials.me/
   ROLE: "1563661616795353199"
+  EMOJI: "<:midnightessentials:1562190584746348615>"
 
 jobs:
   discord:
     runs-on: ubuntu-latest
     steps:
-      - name: Post changelog to announcements
+      - name: Post changelog to Discord
         if: github.event_name == 'release'
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -25,21 +26,36 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
           BODY: ${{ github.event.release.body }}
         run: |
-          jq -n --arg name "$NAME" --arg tag "$TAG" --arg body "$BODY" --arg logo "$LOGO" --arg site "$SITE" --arg role "$ROLE" '{
-            username: "MidnightEssentials",
-            avatar_url: $logo,
-            content: ("<@&" + $role + ">"),
-            allowed_mentions: { roles: [$role] },
-            embeds: [{
-              author: { name: "MidnightEssentials", icon_url: $logo },
-              title: ("MidnightEssentials " + (if ($name | length) > 0 then $name else $tag end)),
-              url: $site,
-              description: (($body | .[0:3900]) + "\n\n⬇️ **[Download the latest version](" + $site + ")**"),
-              color: 10980346,
-              footer: { text: "Update via the Updater app or the download channel" },
-              timestamp: (now | todate)
-            }]
-          }' | curl -sS --fail-with-body -H "Content-Type: application/json" -d @- "$WEBHOOK"
+          TITLE="$NAME"
+          [ -z "$TITLE" ] && TITLE="$TAG"
+          case "$TITLE" in v*) ;; *) TITLE="v$TITLE" ;; esac
+
+          {
+            echo "# $EMOJI MidnightEssentials $TITLE"
+            printf '%s\n' "$BODY" | tr -d '\r' | sed '/^[[:space:]]*$/d'
+            echo "-# [Download the latest version](<$SITE>) • <@&$ROLE>"
+          } > changelog.txt
+
+          awk -v max=1900 -v n=0 '
+            {
+              if (len + length($0) + 1 > max && len > 0) {
+                f = sprintf("chunk_%03d.txt", n); printf "%s", buf > f; close(f)
+                n++; buf = ""; len = 0
+              }
+              buf = buf $0 "\n"; len += length($0) + 1
+            }
+            END { if (len > 0) { f = sprintf("chunk_%03d.txt", n); printf "%s", buf > f; close(f) } }
+          ' changelog.txt
+
+          for f in chunk_*.txt; do
+            jq -n --rawfile c "$f" --arg logo "$LOGO" --arg role "$ROLE" '{
+              username: "MidnightEssentials",
+              avatar_url: $logo,
+              content: $c,
+              allowed_mentions: { roles: [$role] }
+            }' | curl -sS --fail-with-body -H "Content-Type: application/json" -d @- "$WEBHOOK"
+            sleep 1
+          done
 
       - name: Create or update the download post
         env:
