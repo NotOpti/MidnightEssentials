@@ -17,7 +17,6 @@ env:
   LOGO: https://www.midnightessentials.me/favicon.png
   SITE: https://www.midnightessentials.me/
   ROLE: "1563661616795353199"
-  EMOJI: "<:midnightessentials:1562190584746348615>"
 
 jobs:
   discord:
@@ -41,12 +40,12 @@ jobs:
 
           TITLE="$NAME"
           [ -z "$TITLE" ] && TITLE="$TAG"
-          case "$TITLE" in v*) ;; *) TITLE="v$TITLE" ;; esac
+          TITLE="${TITLE#v}"
 
           {
-            echo "# $EMOJI MidnightEssentials $TITLE"
+            echo "# Version $TITLE"
             printf '%s\n' "$BODY" | tr -d '\r' | sed '/^[[:space:]]*$/d'
-            echo "-# [Download the latest version](<$SITE>) • <@&$ROLE>"
+            echo "-# <@&$ROLE>"
           } > changelog.txt
 
           awk -v max=1900 -v n=0 '
@@ -60,13 +59,18 @@ jobs:
             END { if (len > 0) { f = sprintf("chunk_%03d.txt", n); printf "%s", buf > f; close(f) } }
           ' changelog.txt
 
+          LAST=$(ls chunk_*.txt | tail -n 1)
           for f in chunk_*.txt; do
-            jq -n --rawfile c "$f" --arg logo "$LOGO" --arg role "$ROLE" '{
+            if [ "$f" = "$LAST" ]; then BUTTONS=true; else BUTTONS=false; fi
+            jq -n --rawfile c "$f" --arg logo "$LOGO" --arg role "$ROLE" --arg site "$SITE" --argjson buttons "$BUTTONS" '{
               username: "MidnightEssentials",
               avatar_url: $logo,
               content: $c,
               allowed_mentions: { roles: [$role] }
-            }' | curl -sS --fail-with-body -H "Content-Type: application/json" -d @- "$WEBHOOK"
+            } + (if $buttons then { components: [{ type: 1, components: [
+              { type: 2, style: 5, label: "Download", url: $site },
+              { type: 2, style: 5, label: "Updater App", url: ($site + "#updater") }
+            ]}]} else {} end)' | curl -sS --fail-with-body -H "Content-Type: application/json" -d @- "$WEBHOOK?with_components=true"
             sleep 1
           done
 
