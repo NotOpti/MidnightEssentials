@@ -1,0 +1,32 @@
+name: Post release to Discord
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send changelog to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          NAME: ${{ github.event.release.name }}
+          TAG: ${{ github.event.release.tag_name }}
+          BODY: ${{ github.event.release.body }}
+          URL: ${{ github.event.release.html_url }}
+          LOGO: https://www.midnightessentials.me/favicon.png
+        run: |
+          jq -n --arg name "$NAME" --arg tag "$TAG" --arg body "$BODY" --arg url "$URL" --arg logo "$LOGO" '{
+            username: "MidnightEssentials",
+            avatar_url: $logo,
+            embeds: [{
+              author: { name: "MidnightEssentials", icon_url: $logo },
+              title: ("MidnightEssentials " + (if ($name | length) > 0 then $name else $tag end)),
+              url: $url,
+              description: ($body | .[0:4000]),
+              color: 10980346,
+              footer: { text: "Update via the Updater app or the download channel" },
+              timestamp: (now | todate)
+            }]
+          }' | curl -sS -H "Content-Type: application/json" -d @- "$WEBHOOK"
