@@ -3,30 +3,80 @@ name: Post release to Discord
 on:
   release:
     types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LOGO: https://www.midnightessentials.me/favicon.png
+  SITE: https://www.midnightessentials.me/
 
 jobs:
   discord:
     runs-on: ubuntu-latest
     steps:
-      - name: Send changelog to Discord
+      - name: Post changelog to announcements
+        if: github.event_name == 'release'
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           NAME: ${{ github.event.release.name }}
           TAG: ${{ github.event.release.tag_name }}
           BODY: ${{ github.event.release.body }}
-          URL: ${{ github.event.release.html_url }}
-          LOGO: https://www.midnightessentials.me/favicon.png
         run: |
-          jq -n --arg name "$NAME" --arg tag "$TAG" --arg body "$BODY" --arg url "$URL" --arg logo "$LOGO" '{
+          jq -n --arg name "$NAME" --arg tag "$TAG" --arg body "$BODY" --arg logo "$LOGO" --arg site "$SITE" '{
             username: "MidnightEssentials",
             avatar_url: $logo,
             embeds: [{
               author: { name: "MidnightEssentials", icon_url: $logo },
               title: ("MidnightEssentials " + (if ($name | length) > 0 then $name else $tag end)),
-              url: $url,
-              description: ($body | .[0:4000]),
+              url: $site,
+              description: (($body | .[0:3900]) + "\n\n⬇️ **[Download the latest version](" + $site + ")**"),
               color: 10980346,
               footer: { text: "Update via the Updater app or the download channel" },
               timestamp: (now | todate)
             }]
-          }' | curl -sS -H "Content-Type: application/json" -d @- "$WEBHOOK"
+          }' | curl -sS --fail-with-body -H "Content-Type: application/json" -d @- "$WEBHOOK"
+
+      - name: Create or update the download post
+        env:
+          DL_WEBHOOK: ${{ secrets.DOWNLOAD_WEBHOOK }}
+          MSG_ID: ${{ vars.DOWNLOAD_MESSAGE_ID }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(gh api "repos/${{ github.repository }}/releases/latest" --jq 'if (.name // "") != "" then .name else .tag_name end')
+          case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
+
+          jq -n --arg v "$VERSION" --arg logo "$LOGO" --arg site "$SITE" '{
+            username: "MidnightEssentials",
+            avatar_url: $logo,
+            embeds: [{
+              author: { name: "MidnightEssentials", icon_url: $logo },
+              title: ("MidnightEssentials " + $v),
+              url: $site,
+              description: "Your entire interface. One addon.\nNow with **WoW Forever** support.",
+              color: 10980346,
+              fields: [
+                { name: "⚡ One-click install & updates",
+                  value: "The Updater app installs MidnightEssentials for you and keeps it up to date automatically. Get it with the button below, or see <#1551228077671972885>" },
+                { name: "📥 Manual install / update",
+                  value: "1. Click **Download** below and get the latest version\n2. Delete all MidnightEssentials folders in:\n`World of Warcraft > _retail_ > Interface > AddOns`\n3. Extract the new version there" }
+              ],
+              footer: { text: ("Latest version: " + $v), icon_url: $logo },
+              timestamp: (now | todate)
+            }],
+            components: [{ type: 1, components: [
+              { type: 2, style: 5, label: "Download", emoji: { name: "⬇️" }, url: $site },
+              { type: 2, style: 5, label: "Updater App", emoji: { name: "🔄" }, url: ($site + "#updater") }
+            ]}]
+          }' > payload.json
+
+          if [ -z "$MSG_ID" ]; then
+            RESP=$(curl -sS --fail-with-body -H "Content-Type: application/json" -d @payload.json "$DL_WEBHOOK?wait=true&with_components=true")
+            ID=$(echo "$RESP" | jq -r .id)
+            echo "DOWNLOAD MESSAGE ID: $ID"
+            echo "### Download post created. Message ID: \`$ID\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            curl -sS --fail-with-body -X PATCH -H "Content-Type: application/json" -d @payload.json "$DL_WEBHOOK/messages/$MSG_ID?with_components=true"
+            echo "### Download post updated to $VERSION" >> "$GITHUB_STEP_SUMMARY"
+          fi
