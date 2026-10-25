@@ -11,6 +11,7 @@ permissions:
 env:
   LOGO: https://www.midnightessentials.me/favicon.png
   SITE: https://www.midnightessentials.me/
+  ROLE: "1563661616795353199"
 
 jobs:
   discord:
@@ -24,9 +25,11 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
           BODY: ${{ github.event.release.body }}
         run: |
-          jq -n --arg name "$NAME" --arg tag "$TAG" --arg body "$BODY" --arg logo "$LOGO" --arg site "$SITE" '{
+          jq -n --arg name "$NAME" --arg tag "$TAG" --arg body "$BODY" --arg logo "$LOGO" --arg site "$SITE" --arg role "$ROLE" '{
             username: "MidnightEssentials",
             avatar_url: $logo,
+            content: ("<@&" + $role + ">"),
+            allowed_mentions: { roles: [$role] },
             embeds: [{
               author: { name: "MidnightEssentials", icon_url: $logo },
               title: ("MidnightEssentials " + (if ($name | length) > 0 then $name else $tag end)),
