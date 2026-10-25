@@ -57,7 +57,7 @@ jobs:
               description: "Your entire interface. One addon.\nNow with **WoW Forever** support.",
               color: 10980346,
               fields: [
-                { name: "⚡ One-click install & updates",
+                { name: "🔄 One-click install & updates",
                   value: "The Updater app installs MidnightEssentials for you and keeps it up to date automatically. Get it with the button below, or see <#1551228077671972885>" },
                 { name: "📥 Manual install / update",
                   value: "1. Click **Download** below and get the latest version\n2. Delete all MidnightEssentials folders in:\n`World of Warcraft > _retail_ > Interface > AddOns`\n3. Extract the new version there" }
