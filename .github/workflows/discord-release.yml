@@ -62,7 +62,7 @@ jobs:
                 { name: "📥 Manual install / update",
                   value: "1. Click **Download** below and get the latest version\n2. Delete all MidnightEssentials folders in:\n`World of Warcraft > _retail_ > Interface > AddOns`\n3. Extract the new version there" }
               ],
-              footer: { text: ("Latest version: " + $v), icon_url: $logo },
+              footer: { text: "MidnightEssentials © 2026", icon_url: $logo },
               timestamp: (now | todate)
             }],
             components: [{ type: 1, components: [
