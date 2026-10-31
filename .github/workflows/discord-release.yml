@@ -44,7 +44,7 @@ jobs:
           [ -z "$TITLE" ] && TITLE="$TAG"
           TITLE="${TITLE#v}"
 
-          printf '%s\n' "$BODY" | tr -d '\r' | sed '/^[[:space:]]*$/d' > notes.txt
+          printf '%s\n' "$BODY" | tr -d '\r' | sed '/^[[:space:]]*$/d' | sed -E '/^[#*[:space:]]*MidnightEssentials v?[0-9][0-9.]*[*[:space:]]*$/d' > notes.txt
           : > body.txt
 
           awk -v max=1700 '
