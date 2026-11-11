@@ -73,9 +73,8 @@ jobs:
             echo "-# <@&$ROLE>"
           } > message.txt
 
-          jq -n --rawfile c message.txt --arg logo "$LOGO" --arg role "$ROLE" --arg site "$SITE" --arg notes "$NOTES" '{
+          jq -n --rawfile c message.txt --arg role "$ROLE" --arg site "$SITE" --arg notes "$NOTES" '{
             username: "MidnightEssentials",
-            avatar_url: $logo,
             content: $c,
             allowed_mentions: { roles: [$role] },
             components: [{ type: 1, components: [
@@ -100,7 +99,6 @@ jobs:
 
           jq -n --arg v "$VERSION" --arg logo "$LOGO" --arg site "$SITE" '{
             username: "MidnightEssentials",
-            avatar_url: $logo,
             embeds: [{
               title: ("MidnightEssentials " + $v),
               url: $site,
